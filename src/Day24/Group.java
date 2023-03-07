@@ -1,6 +1,5 @@
 package Day24;
 
-import java.util.Comparator;
 import java.util.Objects;
 import java.util.Set;
 
@@ -17,6 +16,7 @@ public class Group implements Comparable<Group> {
     private int units;
     private int groupNumber;
     private int groupIdWhichIAttack;
+    private int effectivePower;
 
     public Group(int hitPoints, int attackDamage, AttackType attackType, int initiative, Set<AttackType> immunities, Set<AttackType> weaknesses, int units) {
         this.hitPoints = hitPoints;
@@ -28,10 +28,16 @@ public class Group implements Comparable<Group> {
         this.units = units;
         this.groupNumber = groupCounter++;
         this.groupIdWhichIAttack = -1;
+        updateEffectivePower();
     }
 
     public int getEffectivePower() {
-        return units * attackDamage;
+        updateEffectivePower();
+        return this.effectivePower;
+    }
+
+    public void updateEffectivePower() {
+        this.effectivePower = units * attackDamage;
     }
 
     public int getHitPoints() {
@@ -95,12 +101,12 @@ public class Group implements Comparable<Group> {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Group group = (Group) o;
-        return hitPoints == group.hitPoints && attackDamage == group.attackDamage && initiative == group.initiative && units == group.units && attackType == group.attackType && weaknesses.equals(group.weaknesses) && immunities.equals(group.immunities);
+        return hitPoints == group.hitPoints && attackDamage == group.attackDamage && initiative == group.initiative && units == group.units && groupNumber == group.groupNumber && groupIdWhichIAttack == group.groupIdWhichIAttack && attackType == group.attackType && weaknesses.equals(group.weaknesses) && immunities.equals(group.immunities);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(hitPoints, attackDamage, attackType, initiative, weaknesses, immunities, units);
+        return Objects.hash(hitPoints, attackDamage, attackType, initiative, weaknesses, immunities, units, groupNumber, groupIdWhichIAttack);
     }
 
     @Override
