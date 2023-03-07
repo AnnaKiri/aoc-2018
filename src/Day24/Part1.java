@@ -20,16 +20,16 @@ public class Part1 {
         }
     }
 
-    private static boolean simulationStart( int boost) throws IOException {
+    private static boolean simulationStart(int boost) throws IOException {
 
         List<Group> immuneSystem = new ArrayList<>();
         List<Group> infection = new ArrayList<>();
 
-        Map<Integer, Group> groupWithId = new HashMap<>();
+        Map<Integer, Group> groupsById = new HashMap<>();
         if (TEST_MODE) {
-            fillByTestData(immuneSystem, infection, groupWithId, boost);
+            fillByTestData(immuneSystem, infection, groupsById, boost);
         } else {
-            fillByRealData(immuneSystem, infection, groupWithId, boost);
+            fillByRealData(immuneSystem, infection, groupsById, boost);
         }
 
         int battle = 0;
@@ -39,28 +39,26 @@ public class Part1 {
                 return false;
             }
 
-            TreeSet<Group> attackQueue = new TreeSet<>();
-            attackQueue.addAll(immuneSystem);
-            attackQueue.addAll(infection);
+            TreeSet<Group> aggressorsQueue = new TreeSet<>();
+            aggressorsQueue.addAll(immuneSystem);
+            aggressorsQueue.addAll(infection);
 
             targetSelection(infection, immuneSystem);
             targetSelection(immuneSystem, infection);
 
-            for (Group groupWhichAttack : attackQueue) {
-                groupWhichAttack.updateEffectivePower();
-
-                if (groupWhichAttack.getGroupIdWhichIAttack() == -1 || groupWhichAttack.getUnits() == 0) {
+            for (Group aggressor : aggressorsQueue) {
+                if (aggressor.getMyVictimId() == -1 || aggressor.getUnits() == 0) {
                     continue;
                 }
 
-                Group defenseGroup = groupWithId.get(groupWhichAttack.getGroupIdWhichIAttack());
-                if (defenseGroup.performAttack()) {
-                    immuneSystem.remove(defenseGroup);
-                    infection.remove(defenseGroup);
+                Group victim = groupsById.get(aggressor.getMyVictimId());
+                if (victim.getAttack()) {
+                    immuneSystem.remove(victim);
+                    infection.remove(victim);
                 }
             }
 
-            Iterator<Group> iterator = attackQueue.iterator();
+            Iterator<Group> iterator = aggressorsQueue.iterator();
             while (iterator.hasNext()) {
                 Group group = iterator.next();
                 if (group.getUnits() == 0) {
@@ -82,7 +80,7 @@ public class Part1 {
     }
 
     private static void targetSelection(List<Group> aggressors, List<Group> victims) {
-        TreeSet<Group> selectionQueue = new TreeSet<>(new Comparator<Group>() {
+        TreeSet<Group> aggressorsQueue = new TreeSet<>(new Comparator<Group>() {
             @Override
             public int compare(Group o1, Group o2) {
                 if (o1.getEffectivePower() < o2.getEffectivePower()){
@@ -94,12 +92,12 @@ public class Part1 {
                 }
             }
         });
-        selectionQueue.addAll(aggressors);
+        aggressorsQueue.addAll(aggressors);
 
-        Set<Integer> chosenGroups = new HashSet<>();
+        Set<Integer> chosenVictims = new HashSet<>();
 
-        for (Group aggressor : selectionQueue) {
-            aggressor.setGroupIdWhichIAttack(-1);
+        for (Group aggressor : aggressorsQueue) {
+            aggressor.setMyVictimId(-1);
 
             TreeSet<Group> candidatesToAttack = new TreeSet<>(new Comparator<Group>() {
                 @Override
@@ -121,10 +119,10 @@ public class Part1 {
             });
 
             for (Group victim: victims) {
-                if (chosenGroups.contains(victim.getGroupNumber())) {
+                if (chosenVictims.contains(victim.getId())) {
                     continue;
                 }
-                victim.setWhoAttackMe(aggressor);
+                victim.setMyAggressor(aggressor);
                 candidatesToAttack.add(victim);
             }
 
@@ -134,26 +132,26 @@ public class Part1 {
 
             Group bestChoice = candidatesToAttack.first();
             if (bestChoice.calculateDamage() != 0) {
-                aggressor.setGroupIdWhichIAttack(bestChoice.getGroupNumber());
-                chosenGroups.add(bestChoice.getGroupNumber());
+                aggressor.setMyVictimId(bestChoice.getId());
+                chosenVictims.add(bestChoice.getId());
             }
 
             for (Group victim: victims) {
-                if (chosenGroups.contains(victim.getGroupNumber())) {
+                if (chosenVictims.contains(victim.getId())) {
                     continue;
                 }
-                victim.setWhoAttackMe(null);
+                victim.setMyAggressor(null);
             }
         }
 
     }
 
-    private static void fillByRealData(List<Group> immuneSystem, List<Group> infection, Map<Integer, Group> groupWithId, int boost) throws IOException {
+    private static void fillByRealData(List<Group> immuneSystem, List<Group> infection, Map<Integer, Group> groupById, int boost) throws IOException {
 
         String path = ".\\src\\Day24\\data.txt";
-        final String[] instructions = Files.readString(Path.of(path)).split("\r\n\r\n");
+        final String[] armiesDescription = Files.readString(Path.of(path)).split("\r\n\r\n");
 
-        for (String system : instructions) {
+        for (String system : armiesDescription) {
             String[] systemGroup = system.split("\r\n");
             for (int i = 0; i < systemGroup.length; i++) {
                 if (i == 0) {
@@ -184,21 +182,11 @@ public class Part1 {
 
                 Matcher regex3 = Pattern.compile("immune to ([a-z, ]+)").matcher(systemGroup[i]);
                 Set<AttackType> immunities = new HashSet<>();
-                if (regex3.find()) {
-                    String[] immuneFeature = regex3.group(1).split(", ");
-                    for (String feature : immuneFeature) {
-                        immunities.add(AttackType.valueOf(feature.toUpperCase()));
-                    }
-                }
+                parseListOfAttack(regex3, immunities);
 
                 Matcher regex4 = Pattern.compile("weak to ([a-z, ]+)").matcher(systemGroup[i]);
                 Set<AttackType> weaknesses = new HashSet<>();
-                if (regex4.find()) {
-                    String[] weakFeature = regex4.group(1).split(", ");
-                    for (String feature : weakFeature) {
-                        weaknesses.add(AttackType.valueOf(feature.toUpperCase()));
-                    }
-                }
+                parseListOfAttack(regex4, weaknesses);
 
                 Group group = new Group(hitPoints, attackDamage, attackType, initiative, immunities, weaknesses, units);
 
@@ -208,12 +196,21 @@ public class Part1 {
                     infection.add(group);
                 }
 
-                groupWithId.put(group.getGroupNumber(), group);
+                groupById.put(group.getId(), group);
             }
         }
     }
 
-    private static void fillByTestData(List<Group> immuneSystem, List<Group> infection, Map<Integer, Group> groupWithId, int boost) {
+    private static void parseListOfAttack(Matcher regex, Set<AttackType> list) {
+        if (regex.find()) {
+            String[] attackType = regex.group(1).split(", ");
+            for (String feature : attackType) {
+                list.add(AttackType.valueOf(feature.toUpperCase()));
+            }
+        }
+    }
+
+    private static void fillByTestData(List<Group> immuneSystem, List<Group> infection, Map<Integer, Group> groupById, int boost) {
 
         Set<AttackType> weaknesses = new HashSet<>();
         weaknesses.add(AttackType.RADIATION);
@@ -250,9 +247,9 @@ public class Part1 {
         infection.add(group3);
         infection.add(group4);
 
-        groupWithId.put(group1.getGroupNumber(), group1);
-        groupWithId.put(group2.getGroupNumber(), group2);
-        groupWithId.put(group3.getGroupNumber(), group3);
-        groupWithId.put(group4.getGroupNumber(), group4);
+        groupById.put(group1.getId(), group1);
+        groupById.put(group2.getId(), group2);
+        groupById.put(group3.getId(), group3);
+        groupById.put(group4.getId(), group4);
     }
 }

@@ -14,10 +14,9 @@ public class Group implements Comparable<Group> {
     private Set<AttackType> weaknesses;
     private Set<AttackType> immunities;
     private int units;
-    private int groupNumber;
-    private int groupIdWhichIAttack;
-    private int effectivePower;
-    private Group whoAttackMe;
+    private int id;
+    private int myVictimId;
+    private Group myAggressor;
 
     public Group(int hitPoints, int attackDamage, AttackType attackType, int initiative, Set<AttackType> immunities, Set<AttackType> weaknesses, int units) {
         this.hitPoints = hitPoints;
@@ -27,27 +26,13 @@ public class Group implements Comparable<Group> {
         this.weaknesses = weaknesses;
         this.immunities = immunities;
         this.units = units;
-        this.groupNumber = groupCounter++;
-        this.groupIdWhichIAttack = -1;
-        updateEffectivePower();
-        this.whoAttackMe = null;
+        this.id = groupCounter++;
+        this.myVictimId = -1;
+        this.myAggressor = null;
     }
 
     public int getEffectivePower() {
-        updateEffectivePower();
-        return this.effectivePower;
-    }
-
-    public void updateEffectivePower() {
-        this.effectivePower = units * attackDamage;
-    }
-
-    public int getHitPoints() {
-        return hitPoints;
-    }
-
-    public int getAttackDamage() {
-        return attackDamage;
+        return units * attackDamage;
     }
 
     public AttackType getAttackType() {
@@ -58,48 +43,40 @@ public class Group implements Comparable<Group> {
         return initiative;
     }
 
-    public Set<AttackType> getWeaknesses() {
-        return weaknesses;
-    }
-
-    public Set<AttackType> getImmunities() {
-        return immunities;
-    }
-
     public int getUnits() {
         return units;
     }
 
-    public int getGroupNumber() {
-        return groupNumber;
+    public int getId() {
+        return id;
     }
 
-    public int getGroupIdWhichIAttack() {
-        return groupIdWhichIAttack;
+    public int getMyVictimId() {
+        return myVictimId;
     }
 
-    public void setGroupIdWhichIAttack(int groupIdWhichIAttack) {
-        this.groupIdWhichIAttack = groupIdWhichIAttack;
+    public void setMyVictimId(int myVictimId) {
+        this.myVictimId = myVictimId;
     }
 
-    public void setWhoAttackMe(Group whoAttackMe) {
-        this.whoAttackMe = whoAttackMe;
+    public void setMyAggressor(Group myAggressor) {
+        this.myAggressor = myAggressor;
     }
 
     public int calculateDamage() {
-        if (whoAttackMe == null) {
+        if (myAggressor == null) {
             return 0;
         }
-        if (this.immunities.contains(whoAttackMe.getAttackType())){
+        if (this.immunities.contains(myAggressor.getAttackType())){
             return 0;
-        } else if (this.weaknesses.contains(whoAttackMe.getAttackType())) {
-            return whoAttackMe.getEffectivePower() * 2;
+        } else if (this.weaknesses.contains(myAggressor.getAttackType())) {
+            return myAggressor.getEffectivePower() * 2;
         } else {
-            return whoAttackMe.getEffectivePower();
+            return myAggressor.getEffectivePower();
         }
     }
 
-    public boolean performAttack() {
+    public boolean getAttack() {
         units -= (int) Math.floor(calculateDamage() / hitPoints);
         units = Math.max(units, 0);
         return units == 0;
@@ -110,12 +87,21 @@ public class Group implements Comparable<Group> {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Group group = (Group) o;
-        return hitPoints == group.hitPoints && attackDamage == group.attackDamage && initiative == group.initiative && units == group.units && groupNumber == group.groupNumber && groupIdWhichIAttack == group.groupIdWhichIAttack && attackType == group.attackType && weaknesses.equals(group.weaknesses) && immunities.equals(group.immunities);
+        return hitPoints == group.hitPoints
+                && attackDamage == group.attackDamage
+                && initiative == group.initiative
+                && units == group.units
+                && id == group.id
+                && myVictimId == group.myVictimId
+                && attackType == group.attackType
+                && weaknesses.equals(group.weaknesses)
+                && immunities.equals(group.immunities)
+                && myAggressor.equals(group.myAggressor);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(hitPoints, attackDamage, attackType, initiative, weaknesses, immunities, units, groupNumber, groupIdWhichIAttack);
+        return Objects.hash(hitPoints, attackDamage, attackType, initiative, weaknesses, immunities, units, id, myVictimId, myAggressor);
     }
 
     @Override
