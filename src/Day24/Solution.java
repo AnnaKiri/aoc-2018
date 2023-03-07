@@ -7,7 +7,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class Part1 {
+public class Solution {
 
     final static boolean TEST_MODE = false;
 
