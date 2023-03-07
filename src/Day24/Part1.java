@@ -13,23 +13,23 @@ public class Part1 {
 
     public static void main(String[] args) throws IOException {
 
-        for (int addition = 0; addition < 1_000_000_000; addition++) {
-            if (simulationStart(addition)) {
+        for (int boost = 0; boost < 1_000_000_000; boost++) {
+            if (simulationStart(boost)) {
                 break;
             }
         }
     }
 
-    private static boolean simulationStart( int addition) throws IOException {
+    private static boolean simulationStart( int boost) throws IOException {
 
         List<Group> immuneSystem = new ArrayList<>();
         List<Group> infection = new ArrayList<>();
 
         Map<Integer, Group> groupWithId = new HashMap<>();
         if (TEST_MODE) {
-            fillByTestData(immuneSystem, infection, groupWithId, addition);
+            fillByTestData(immuneSystem, infection, groupWithId, boost);
         } else {
-            fillByRealData(immuneSystem, infection, groupWithId, addition);
+            fillByRealData(immuneSystem, infection, groupWithId, boost);
         }
 
         int battle = 0;
@@ -54,7 +54,7 @@ public class Part1 {
                 }
 
                 Group defenseGroup = groupWithId.get(groupWhichAttack.getGroupIdWhichIAttack());
-                if (defenseGroup.getAttack(groupWhichAttack)) {
+                if (defenseGroup.performAttack()) {
                     immuneSystem.remove(defenseGroup);
                     infection.remove(defenseGroup);
                 }
@@ -82,7 +82,18 @@ public class Part1 {
     }
 
     private static void targetSelection(List<Group> whoAttack, List<Group> whoDefends){
-        TreeSet<Group> selectionQueue = new TreeSet<>(new TargetSelectionComparator());
+        TreeSet<Group> selectionQueue = new TreeSet<>(new Comparator<Group>() {
+            @Override
+            public int compare(Group o1, Group o2) {
+                if (o1.getEffectivePower() < o2.getEffectivePower()){
+                    return 1;
+                } else if (o1.getEffectivePower() > o2.getEffectivePower()) {
+                    return -1;
+                } else {
+                    return o2.getInitiative() - o1.getInitiative();
+                }
+            }
+        });
         selectionQueue.addAll(whoAttack);
 
         Set<Integer> chosenGroups = new HashSet<>();
@@ -98,7 +109,8 @@ public class Part1 {
                     continue;
                 }
 
-                int damage = groupWhichDefend.calculateDamage(groupWhichChoose);
+                groupWhichDefend.setWhoAttackMe(groupWhichChoose);
+                int damage = groupWhichDefend.calculateDamage();
                 if (damage > maxDamage) {
                     maxDamageId = groupWhichDefend.getGroupNumber();
                     maxDamage = damage;
@@ -115,7 +127,7 @@ public class Part1 {
                     continue;
                 }
 
-                if (maxDamage == groupWhichDefend.calculateDamage(groupWhichChoose)) {
+                if (maxDamage == groupWhichDefend.calculateDamage()) {
                     counter++;
                 }
             }
@@ -136,7 +148,7 @@ public class Part1 {
                     continue;
                 }
 
-                if (maxDamage == groupWhichDefend.calculateDamage(groupWhichChoose)) {
+                if (maxDamage == groupWhichDefend.calculateDamage()) {
                     int effectivePower = groupWhichDefend.getEffectivePower();
                     if (effectivePower > maxEffectivePower) {
                         effectivePowerId = groupWhichDefend.getGroupNumber();
@@ -151,7 +163,7 @@ public class Part1 {
                     continue;
                 }
 
-                if (maxDamage == groupWhichDefend.calculateDamage(groupWhichChoose) && maxEffectivePower == groupWhichDefend.getEffectivePower()) {
+                if (maxDamage == groupWhichDefend.calculateDamage() && maxEffectivePower == groupWhichDefend.getEffectivePower()) {
                     counter++;
                 }
             }
@@ -172,7 +184,7 @@ public class Part1 {
                     continue;
                 }
 
-                if (maxDamage == groupWhichDefend.calculateDamage(groupWhichChoose) && maxEffectivePower == groupWhichDefend.getEffectivePower()) {
+                if (maxDamage == groupWhichDefend.calculateDamage() && maxEffectivePower == groupWhichDefend.getEffectivePower()) {
                     int initiative = groupWhichDefend.getInitiative();
                     if (initiative > maxInitiative) {
                         initiativeId = groupWhichDefend.getGroupNumber();
@@ -183,10 +195,17 @@ public class Part1 {
 
             groupWhichChoose.setGroupIdWhichIAttack(initiativeId);
             chosenGroups.add(initiativeId);
+
+            for (Group groupWhichDefend: whoDefends) {
+                if (chosenGroups.contains(groupWhichDefend.getGroupNumber())) {
+                    continue;
+                }
+                groupWhichDefend.setWhoAttackMe(null);
+            }
         }
     }
 
-    private static void fillByRealData(List<Group> immuneSystem, List<Group> infection, Map<Integer, Group> groupWithId, int addition) throws IOException {
+    private static void fillByRealData(List<Group> immuneSystem, List<Group> infection, Map<Integer, Group> groupWithId, int boost) throws IOException {
 
         String path = ".\\src\\Day24\\data.txt";
         final String[] instructions = Files.readString(Path.of(path)).split("\r\n\r\n");
@@ -215,7 +234,7 @@ public class Part1 {
                 }
                 int attackDamage = Integer.parseInt(regex2.group(1));
                 if (systemGroup[0].equals("Immune System:")) {
-                    attackDamage += addition;
+                    attackDamage += boost;
                 }
                 AttackType attackType = AttackType.valueOf(regex2.group(2).toUpperCase());
                 int initiative = Integer.parseInt(regex2.group(3));
@@ -251,13 +270,13 @@ public class Part1 {
         }
     }
 
-    private static void fillByTestData(List<Group> immuneSystem, List<Group> infection, Map<Integer, Group> groupWithId, int addition) {
+    private static void fillByTestData(List<Group> immuneSystem, List<Group> infection, Map<Integer, Group> groupWithId, int boost) {
 
         Set<AttackType> weaknesses = new HashSet<>();
         weaknesses.add(AttackType.RADIATION);
         weaknesses.add(AttackType.BLUDGEONING);
 
-        Group group1 = new Group(5390, 4507 + addition, AttackType.FIRE, 2, new HashSet<>(), weaknesses,17);
+        Group group1 = new Group(5390, 4507 + boost, AttackType.FIRE, 2, new HashSet<>(), weaknesses,17);
 
         weaknesses = new HashSet<>();
         weaknesses.add(AttackType.BLUDGEONING);
@@ -266,7 +285,7 @@ public class Part1 {
         Set<AttackType> immunities = new HashSet<>();
         immunities.add(AttackType.FIRE);
 
-        Group group2 = new Group(1274, 25 + addition, AttackType.SLASHING, 3, immunities, weaknesses, 989);
+        Group group2 = new Group(1274, 25 + boost, AttackType.SLASHING, 3, immunities, weaknesses, 989);
 
         immuneSystem.add(group1);
         immuneSystem.add(group2);
@@ -298,12 +317,18 @@ public class Part1 {
 class TargetSelectionComparator implements Comparator<Group> {
     @Override
     public int compare(Group o1, Group o2) {
-        if (o1.getEffectivePower() < o2.getEffectivePower()){
+        if (o1.getAttackDamage() < o2.getAttackDamage()){
             return 1;
-        } else if (o1.getEffectivePower() > o2.getEffectivePower()) {
+        } else if (o1.getAttackDamage() > o2.getAttackDamage()) {
             return -1;
         } else {
-            return o2.getInitiative() - o1.getInitiative();
+            if (o1.getEffectivePower() < o2.getEffectivePower()) {
+                return 1;
+            } else if (o1.getEffectivePower() > o2.getEffectivePower()) {
+                return -1;
+            } else {
+                return o2.getInitiative() - o1.getInitiative();
+            }
         }
     }
 }

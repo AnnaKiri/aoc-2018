@@ -17,6 +17,7 @@ public class Group implements Comparable<Group> {
     private int groupNumber;
     private int groupIdWhichIAttack;
     private int effectivePower;
+    private Group whoAttackMe;
 
     public Group(int hitPoints, int attackDamage, AttackType attackType, int initiative, Set<AttackType> immunities, Set<AttackType> weaknesses, int units) {
         this.hitPoints = hitPoints;
@@ -29,6 +30,7 @@ public class Group implements Comparable<Group> {
         this.groupNumber = groupCounter++;
         this.groupIdWhichIAttack = -1;
         updateEffectivePower();
+        this.whoAttackMe = null;
     }
 
     public int getEffectivePower() {
@@ -80,18 +82,25 @@ public class Group implements Comparable<Group> {
         this.groupIdWhichIAttack = groupIdWhichIAttack;
     }
 
-    public int calculateDamage(Group aggressor) {
-        if (this.immunities.contains(aggressor.getAttackType())){
+    public void setWhoAttackMe(Group whoAttackMe) {
+        this.whoAttackMe = whoAttackMe;
+    }
+
+    public int calculateDamage() {
+        if (whoAttackMe == null) {
             return 0;
-        } else if (this.weaknesses.contains(aggressor.getAttackType())) {
-            return aggressor.getEffectivePower() * 2;
+        }
+        if (this.immunities.contains(whoAttackMe.getAttackType())){
+            return 0;
+        } else if (this.weaknesses.contains(whoAttackMe.getAttackType())) {
+            return whoAttackMe.getEffectivePower() * 2;
         } else {
-            return aggressor.getEffectivePower();
+            return whoAttackMe.getEffectivePower();
         }
     }
 
-    public boolean getAttack(Group aggressor) {
-        units -= (int) Math.floor(calculateDamage(aggressor) / hitPoints);
+    public boolean performAttack() {
+        units -= (int) Math.floor(calculateDamage() / hitPoints);
         units = Math.max(units, 0);
         return units == 0;
     }
