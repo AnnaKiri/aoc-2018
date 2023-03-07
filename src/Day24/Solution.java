@@ -162,7 +162,7 @@ public class Solution {
 
                 if (!regex1.find()) {
                     System.out.println("regex1 not found!");
-                    return;
+                    throw new IOException();
                 }
                 int units = Integer.parseInt(regex1.group(1));
                 int hitPoints = Integer.parseInt(regex1.group(2));
@@ -171,7 +171,7 @@ public class Solution {
 
                 if (!regex2.find()) {
                     System.out.println("regex2 not found!");
-                    return;
+                    throw new IOException();
                 }
                 int attackDamage = Integer.parseInt(regex2.group(1));
                 if (systemGroup[0].equals("Immune System:")) {
