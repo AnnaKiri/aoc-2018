@@ -81,7 +81,7 @@ public class Part1 {
         return infection.isEmpty();
     }
 
-    private static void targetSelection(List<Group> whoAttack, List<Group> whoDefends){
+    private static void targetSelection(List<Group> aggressors, List<Group> victims) {
         TreeSet<Group> selectionQueue = new TreeSet<>(new Comparator<Group>() {
             @Override
             public int compare(Group o1, Group o2) {
@@ -94,115 +94,58 @@ public class Part1 {
                 }
             }
         });
-        selectionQueue.addAll(whoAttack);
+        selectionQueue.addAll(aggressors);
 
         Set<Integer> chosenGroups = new HashSet<>();
 
-        for (Group groupWhichChoose : selectionQueue) {
-            groupWhichChoose.setGroupIdWhichIAttack(-1);
+        for (Group aggressor : selectionQueue) {
+            aggressor.setGroupIdWhichIAttack(-1);
 
-            int maxDamage = Integer.MIN_VALUE;
-            int maxDamageId = -1;
-
-            for (Group groupWhichDefend: whoDefends) {
-                if (chosenGroups.contains(groupWhichDefend.getGroupNumber())) {
-                    continue;
-                }
-
-                groupWhichDefend.setWhoAttackMe(groupWhichChoose);
-                int damage = groupWhichDefend.calculateDamage();
-                if (damage > maxDamage) {
-                    maxDamageId = groupWhichDefend.getGroupNumber();
-                    maxDamage = damage;
-                }
-            }
-
-            if (maxDamage == 0 || maxDamageId == -1) {
-                continue;
-            }
-
-            int counter = 0;
-            for (Group groupWhichDefend: whoDefends) {
-                if (chosenGroups.contains(groupWhichDefend.getGroupNumber())) {
-                    continue;
-                }
-
-                if (maxDamage == groupWhichDefend.calculateDamage()) {
-                    counter++;
-                }
-            }
-
-            if (counter == 1) {
-                groupWhichChoose.setGroupIdWhichIAttack(maxDamageId);
-                chosenGroups.add(maxDamageId);
-                continue;
-            }
-
-//________________________________________________________________________________________________________
-
-            int maxEffectivePower = Integer.MIN_VALUE;
-            int effectivePowerId = -1;
-
-            for (Group groupWhichDefend: whoDefends) {
-                if (chosenGroups.contains(groupWhichDefend.getGroupNumber())) {
-                    continue;
-                }
-
-                if (maxDamage == groupWhichDefend.calculateDamage()) {
-                    int effectivePower = groupWhichDefend.getEffectivePower();
-                    if (effectivePower > maxEffectivePower) {
-                        effectivePowerId = groupWhichDefend.getGroupNumber();
-                        maxEffectivePower = effectivePower;
+            TreeSet<Group> candidatesToAttack = new TreeSet<>(new Comparator<Group>() {
+                @Override
+                public int compare(Group o1, Group o2) {
+                    if (o1.calculateDamage() < o2.calculateDamage()){
+                        return 1;
+                    } else if (o1.calculateDamage() > o2.calculateDamage()) {
+                        return -1;
+                    } else {
+                        if (o1.getEffectivePower() < o2.getEffectivePower()) {
+                            return 1;
+                        } else if (o1.getEffectivePower() > o2.getEffectivePower()) {
+                            return -1;
+                        } else {
+                            return o2.getInitiative() - o1.getInitiative();
+                        }
                     }
                 }
-            }
+            });
 
-            counter = 0;
-            for (Group groupWhichDefend: whoDefends) {
-                if (chosenGroups.contains(groupWhichDefend.getGroupNumber())) {
+            for (Group victim: victims) {
+                if (chosenGroups.contains(victim.getGroupNumber())) {
                     continue;
                 }
-
-                if (maxDamage == groupWhichDefend.calculateDamage() && maxEffectivePower == groupWhichDefend.getEffectivePower()) {
-                    counter++;
-                }
+                victim.setWhoAttackMe(aggressor);
+                candidatesToAttack.add(victim);
             }
 
-            if (counter == 1) {
-                groupWhichChoose.setGroupIdWhichIAttack(effectivePowerId);
-                chosenGroups.add(effectivePowerId);
+            if (candidatesToAttack.isEmpty()) {
                 continue;
             }
 
-//___________________________________________________________________________________________________________
-
-            int maxInitiative = Integer.MIN_VALUE;
-            int initiativeId = -1;
-
-            for (Group groupWhichDefend: whoDefends) {
-                if (chosenGroups.contains(groupWhichDefend.getGroupNumber())) {
-                    continue;
-                }
-
-                if (maxDamage == groupWhichDefend.calculateDamage() && maxEffectivePower == groupWhichDefend.getEffectivePower()) {
-                    int initiative = groupWhichDefend.getInitiative();
-                    if (initiative > maxInitiative) {
-                        initiativeId = groupWhichDefend.getGroupNumber();
-                        maxInitiative = initiative;
-                    }
-                }
+            Group bestChoice = candidatesToAttack.first();
+            if (bestChoice.calculateDamage() != 0) {
+                aggressor.setGroupIdWhichIAttack(bestChoice.getGroupNumber());
+                chosenGroups.add(bestChoice.getGroupNumber());
             }
 
-            groupWhichChoose.setGroupIdWhichIAttack(initiativeId);
-            chosenGroups.add(initiativeId);
-
-            for (Group groupWhichDefend: whoDefends) {
-                if (chosenGroups.contains(groupWhichDefend.getGroupNumber())) {
+            for (Group victim: victims) {
+                if (chosenGroups.contains(victim.getGroupNumber())) {
                     continue;
                 }
-                groupWhichDefend.setWhoAttackMe(null);
+                victim.setWhoAttackMe(null);
             }
         }
+
     }
 
     private static void fillByRealData(List<Group> immuneSystem, List<Group> infection, Map<Integer, Group> groupWithId, int boost) throws IOException {
@@ -311,24 +254,5 @@ public class Part1 {
         groupWithId.put(group2.getGroupNumber(), group2);
         groupWithId.put(group3.getGroupNumber(), group3);
         groupWithId.put(group4.getGroupNumber(), group4);
-    }
-}
-
-class TargetSelectionComparator implements Comparator<Group> {
-    @Override
-    public int compare(Group o1, Group o2) {
-        if (o1.getAttackDamage() < o2.getAttackDamage()){
-            return 1;
-        } else if (o1.getAttackDamage() > o2.getAttackDamage()) {
-            return -1;
-        } else {
-            if (o1.getEffectivePower() < o2.getEffectivePower()) {
-                return 1;
-            } else if (o1.getEffectivePower() > o2.getEffectivePower()) {
-                return -1;
-            } else {
-                return o2.getInitiative() - o1.getInitiative();
-            }
-        }
     }
 }
