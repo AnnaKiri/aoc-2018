@@ -13,17 +13,31 @@ public class Part1 {
 
     public static void main(String[] args) throws IOException {
 
+        for (int addition = 0; addition < 1_000_000_000; addition++) {
+            if (simulationStart(addition)) {
+                break;
+            }
+        }
+    }
+
+    private static boolean simulationStart( int addition) throws IOException {
+
         List<Group> immuneSystem = new ArrayList<>();
         List<Group> infection = new ArrayList<>();
 
         Map<Integer, Group> groupWithId = new HashMap<>();
         if (TEST_MODE) {
-            fillByTestData(immuneSystem, infection, groupWithId);
+            fillByTestData(immuneSystem, infection, groupWithId, addition);
         } else {
-            fillByRealData(immuneSystem, infection, groupWithId);
+            fillByRealData(immuneSystem, infection, groupWithId, addition);
         }
 
+        int battle = 0;
         while (!immuneSystem.isEmpty() && !infection.isEmpty()) {
+            battle++;
+            if (battle > 10000) {
+                return false;
+            }
 
             TreeSet<Group> attackQueue = new TreeSet<>();
             attackQueue.addAll(immuneSystem);
@@ -64,6 +78,7 @@ public class Part1 {
 
         System.out.println(counter);
 
+        return infection.isEmpty();
     }
 
     private static void targetSelection(List<Group> whoAttack, List<Group> whoDefends){
@@ -171,7 +186,7 @@ public class Part1 {
         }
     }
 
-    private static void fillByRealData(List<Group> immuneSystem, List<Group> infection, Map<Integer, Group> groupWithId) throws IOException {
+    private static void fillByRealData(List<Group> immuneSystem, List<Group> infection, Map<Integer, Group> groupWithId, int addition) throws IOException {
 
         String path = ".\\src\\Day24\\data.txt";
         final String[] instructions = Files.readString(Path.of(path)).split("\r\n\r\n");
@@ -199,6 +214,9 @@ public class Part1 {
                     return;
                 }
                 int attackDamage = Integer.parseInt(regex2.group(1));
+                if (systemGroup[0].equals("Immune System:")) {
+                    attackDamage += addition;
+                }
                 AttackType attackType = AttackType.valueOf(regex2.group(2).toUpperCase());
                 int initiative = Integer.parseInt(regex2.group(3));
 
@@ -233,13 +251,13 @@ public class Part1 {
         }
     }
 
-    private static void fillByTestData(List<Group> immuneSystem, List<Group> infection, Map<Integer, Group> groupWithId) {
+    private static void fillByTestData(List<Group> immuneSystem, List<Group> infection, Map<Integer, Group> groupWithId, int addition) {
 
         Set<AttackType> weaknesses = new HashSet<>();
         weaknesses.add(AttackType.RADIATION);
         weaknesses.add(AttackType.BLUDGEONING);
 
-        Group group1 = new Group(5390, 4507, AttackType.FIRE, 2, new HashSet<>(), weaknesses,17);
+        Group group1 = new Group(5390, 4507 + addition, AttackType.FIRE, 2, new HashSet<>(), weaknesses,17);
 
         weaknesses = new HashSet<>();
         weaknesses.add(AttackType.BLUDGEONING);
@@ -248,7 +266,7 @@ public class Part1 {
         Set<AttackType> immunities = new HashSet<>();
         immunities.add(AttackType.FIRE);
 
-        Group group2 = new Group(1274, 25, AttackType.SLASHING, 3, immunities, weaknesses, 989);
+        Group group2 = new Group(1274, 25 + addition, AttackType.SLASHING, 3, immunities, weaknesses, 989);
 
         immuneSystem.add(group1);
         immuneSystem.add(group2);
