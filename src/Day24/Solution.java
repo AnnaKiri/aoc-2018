@@ -57,14 +57,6 @@ public class Solution {
                     infection.remove(victim);
                 }
             }
-
-            Iterator<Group> iterator = aggressorsQueue.iterator();
-            while (iterator.hasNext()) {
-                Group group = iterator.next();
-                if (group.getUnits() == 0) {
-                    iterator.remove();
-                }
-            }
         }
 
         List<Group> winner = immuneSystem.isEmpty() ? infection : immuneSystem;
